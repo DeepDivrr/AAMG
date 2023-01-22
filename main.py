@@ -6,8 +6,8 @@ import private
 import deckManager
 import os
 
-# Setup
 nest_asyncio.apply()
+
 bot = lightbulb.BotApp(
     token=private.token()
 )
@@ -19,7 +19,7 @@ bot = lightbulb.BotApp(
 async def help(ctx):
     pass
 
-# Lookup
+# lookup
 @bot.command()
 @lightbulb.option('name', 'Name of card')
 @lightbulb.command('lookup', 'Looks up card details')
@@ -37,7 +37,7 @@ async def lookup(ctx):
 @bot.command()
 @lightbulb.command('deck', 'For deck management')
 @lightbulb.implements(lightbulb.SlashCommandGroup)
-async def deck():
+async def deck(ctx):
     pass
 
 @deck.child
@@ -87,8 +87,36 @@ async def deckAdd(ctx):
 @deck.child
 @lightbulb.command('list', 'List all of your decks')
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def deckList():
-    pass
+async def deckList(ctx):
+    userid = ctx.author.id
+    user_dir = f'Decks/{userid}'
+    decklist = []
+    if not os.path.exists(user_dir):
+        os.mkdir(user_dir)
+    
+    for entry in os.listdir(user_dir):
+        _, ext = os.path.splitext(entry)
+        if os.path.isfile(os.path.join(user_dir, entry)) and ext==".txt":
+            decklist.append(entry)
+    
+    embed = hikari.Embed(
+        title="Decklist"
+    )
+    embed.set_author(
+        name=ctx.author.username,
+        icon =ctx.author.avatar_url
+    )
+
+    for i in range(0, len(decklist), 10):
+        chunk=tuple(decklist[i:i+10])
+        embed.add_field(
+            name=f'Chunk {i/10 +1}',
+            value="\n".join(chunk), 
+            inline=True
+        )
+    await ctx.respond(embed=embed)
+
+
 
 @deck.child
 @lightbulb.option('name', 'exact name of deck')

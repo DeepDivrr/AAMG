@@ -8,11 +8,3 @@ def txtToTuple(filepath):
         cardLines = filter(None, file.read().splitlines()) 
         deckTuple = [line[2:] for line in cardLines for _ in range(int(line[0]))]
     return deckTuple
-
-
-
-
-            
-
-
-print(txtToTuple('Decks/Grixis Midrange.txt'))

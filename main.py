@@ -6,8 +6,8 @@ import private
 import deckManager
 import os
 
+# Setup
 nest_asyncio.apply()
-
 bot = lightbulb.BotApp(
     token=private.token()
 )
@@ -19,7 +19,7 @@ bot = lightbulb.BotApp(
 async def help(ctx):
     pass
 
-# lookup
+# Lookup
 @bot.command()
 @lightbulb.option('name', 'Name of card')
 @lightbulb.command('lookup', 'Looks up card details')
@@ -91,10 +91,18 @@ async def deckList():
     pass
 
 @deck.child
+@lightbulb.option('name', 'exact name of deck')
 @lightbulb.command('remove', 'Remove a deck from your list')
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def deckRemove():
-    pass
+async def deckRemove(ctx):
+    userid = ctx.author.id
+    filename = ctx.options.name
+    path = f"Decks/{userid}/{filename}"
+    if os.path.isfile(path):
+        os.remove(path)
+        await ctx.respond(f"File {filename} removed from user {ctx.author.username}'s directory.")
+    else:
+        await ctx.respond(f"File {filename} not found in user {ctx.author.username}'s directory.")
 
 @bot.command()
 @lightbulb.command('game', 'For running a game')

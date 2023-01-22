@@ -2,68 +2,119 @@ import lightbulb
 import scrython
 import hikari
 import nest_asyncio
-import secrets
+import private
 import deckManager
+import os
 
 nest_asyncio.apply()
 
 bot = lightbulb.BotApp(
-    token=secrets.token()
+    token=private.token()
 )
 
+# Help
+@bot.command()
+@lightbulb.command('help', 'List all commands and a description of each')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def help(ctx):
+    pass
+
+# lookup
 @bot.command()
 @lightbulb.option('name', 'Name of card')
 @lightbulb.command('lookup', 'Looks up card details')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def lookup(ctx):
     name = str(ctx.options.name)
-
-    try:
-        card = getCard(name)
-    except scrython.foundation.ScryfallError:
-        await ctx.respond("Your query wasn't good enough for me. Try harder.")
-
-    image = card.image_uris().get('png')
-    await ctx.respond(image)
-
-
-@bot.command()
-@lightbulb.option('name', 'Name of card')
-@lightbulb.command('lookup', 'Looks up card details')
-@lightbulb.implements(lightbulb.SlashCommand)
-async def lookup(ctx):
-    name = str(ctx.options.name)
-
     try:
         card = scrython.cards.Named(fuzzy=name)
+        image = card.image_uris().get('png')
+        await ctx.respond(image)
     except scrython.foundation.ScryfallError:
         await ctx.respond("Your query wasn't good enough for me. Try harder.")
 
-    image = card.image_uris().get('png')
-    await ctx.respond(image)
-
+# Deck management
 @bot.command()
-@lightbulb.command('Deck', 'For deck management')
+@lightbulb.command('deck', 'For deck management')
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def deck():
     pass
 
 @deck.child
-@lightbulb.command('Add', 'Add a new deck to your list')
+@lightbulb.option('file', '.txt attachment file', type=hikari.Attachment)
+@lightbulb.command('add', 'Add a new deck to your list')
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def deckAdd():
+async def deckAdd(ctx):
+    # Create user directory
+    userid = ctx.author.id
+    filename = ctx.options.file.filename
+
+    user_dir = f"Decks/{userid}"
+    if not os.path.exists(user_dir):
+        os.mkdir(user_dir)
+    
+    await ctx.options.file.save(f"Decks/{userid}", force=True)
+
+    # Check that the file is .txt
+    _, ext = os.path.splitext(filename)
+    if ext != '.txt':
+        await ctx.respond("File should be .txt format")
+    
+    await ctx.respond("Success! Here is your decklist:")
+
+    deckTuple = deckManager.txtToTuple(f"Decks/{userid}/{filename}")
+    embed = hikari.Embed(
+            title=f"{filename}",
+            color=ctx.author.accent_color
+        )
+
+    embed.set_author(
+        name=ctx.author.username,
+        icon =ctx.author.avatar_url
+    )
+    
+    for i in range(0, len(deckTuple), 10):
+        chunk=tuple(deckTuple[i:i+10])
+        embed.add_field(
+            name=f'{i}',
+            value="\n".join(chunk), 
+            inline=True
+        )
+
+    await ctx.respond(embed=embed)
+     
+
+@deck.child
+@lightbulb.command('list', 'List all of your decks')
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def deckList():
     pass
 
 @deck.child
-@lightbulb.command('List', 'List all of your decks')
+@lightbulb.command('remove', 'Remove a deck from your list')
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def deckAdd():
+async def deckRemove():
     pass
 
-@deck.child
-@lightbulb.command('Remove', 'Remove a deck from your list')
+@bot.command()
+@lightbulb.command('game', 'For running a game')
+@lightbulb.implements(lightbulb.SlashCommandGroup)
+async def game():
+    pass
+
+@game.child
+@lightbulb.option('deckname', 'Just the exact name')
+@lightbulb.command('start', 'Choose a deck to play with')
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def deckAdd():
+async def gameStart():
+    pass
+    
+
+@game.child
+@lightbulb.option('number', 'Number of cards to draw')
+@lightbulb.command('draw', 'Draw a number of cards')
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def gameDraw():
     pass
 
 
